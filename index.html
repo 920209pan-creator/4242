@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>4학년 2반 국어 맞춤법 맞춤 학습지 생성기</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Nanum+Myeongjo:wght@700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    
+    /* 인쇄 최적화 (A4 규격) */
+    @page {
+      size: A4 portrait;
+      margin: 12mm 15mm;
+    }
+
+    @media print {
+      body {
+        background-color: white !important;
+        color: black !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-page {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        min-height: auto !important;
+      }
+      .page-break {
+        page-break-before: always !important;
+        break-before: page !important;
+      }
+    }
+
+    /* 화면 A4 용지 규격 미리보기 */
+    .a4-preview {
+      width: 210mm;
+      min-height: 297mm;
+      background: white;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      margin: 0 auto;
+      padding: 14mm 16mm;
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    .problem-card {
+      min-height: 75px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-radius: 6px;
+      padding: 10px 12px;
+      border: 1px solid #e2e8f0;
+      background-color: #fafafa;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+  <!-- ================= 컨트롤 패널 (화면에만 표시, 인쇄 시 자동 숨김) ================= -->
+  <div class="no-print bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- 로고 및 서비스 소개 -->
+      <div class="flex items-center space-x-3">
+        <div class="bg-emerald-600 text-white p-2 rounded-lg font-bold text-lg flex items-center justify-center w-10 h-10 shadow">
+          <span>📖</span>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-slate-900 text-lg sm:text-xl">초등 3~4학년 맞춤법 학습지 생성기</h1>
+          <p class="text-xs text-emerald-700 font-medium">예시 낱말('많은' 등)을 넣으면 유사 맞춤법 문제를 1~50단계 난이도로 생성합니다.</p>
+        </div>
+      </div>
+
+      <!-- 상단 액션 버튼 -->
+      <div class="flex items-center gap-2">
+        <button onclick="generateWorksheet()" class="px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white text-sm font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          새 문제 생성
+        </button>
+        <button onclick="window.print()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg shadow transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+          PDF 저장 / 인쇄
+        </button>
+      </div>
+
+    </div>
+
+    <!-- 세부 조절 패널 -->
+    <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 bg-slate-50 border-t border-slate-200">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+        
+        <!-- [1] 예시 문제 입력창 (핵심 기능) -->
+        <div class="md:col-span-5">
+          <label class="block text-xs font-bold text-slate-700 mb-1">
+            ✏️ 예시 낱말 입력 (유형 자동 감지)
+          </label>
+          <div class="relative">
+            <input 
+              type="text" 
+              id="exampleInput" 
+              value="많은" 
+              placeholder="예: 많은, 왠지, 되/돼, 안/않, 맞히다, 깍두기, 띄어쓰기"
+              class="w-full px-3 py-1.5 text-sm font-semibold border-2 border-emerald-300 rounded-md focus:border-emerald-600 focus:outline-none bg-white"
+              oninput="handleExampleChange()"
+            >
+            <span id="detectedBadge" class="absolute right-2 top-1.5 text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">
+              소리와 표기 (연음/받침)
+            </span>
+          </div>
+        </div>
+
+        <!-- [2] 1~50단계 정밀 난이도 슬라이더 -->
+        <div class="md:col-span-7">
+          <div class="flex justify-between items-center mb-1">
+            <label class="text-xs font-bold text-slate-700">
+              🎯 난이도 조절: <span id="diffValueDisplay" class="text-emerald-700 font-extrabold text-sm">Lv. 15</span>
+              <span id="diffDescDisplay" class="text-xs text-slate-500 font-medium ml-1.5">(3~4학년 일상 혼동 어휘)</span>
+            </label>
+            <span class="text-[11px] text-slate-400">1 (기초) ~ 50 (심화)</span>
+          </div>
+          <input 
+            type="range" 
+            id="difficultySlider" 
+            min="1" 
+            max="50" 
+            value="15" 
+            class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+            oninput="handleDifficultyChange()"
+          >
+        </div>
+
+      </div>
+
+      <!-- 빠른 추천 태그 버튼들 -->
+      <div class="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-200 text-xs">
+        <span class="text-slate-500 font-bold text-[11px]">추천 예시 낱말:</span>
+        <button onclick="setExampleWord('많은', 8)" class="bg-white hover:bg-emerald-50 border border-slate-300 px-2 py-1 rounded text-slate-700 font-medium">많은 (소리와 표기)</button>
+        <button onclick="setExampleWord('되/돼', 15)" class="bg-white hover:bg-emerald-50 border border-slate-300 px-2 py-1 rounded text-slate-700 font-medium">되/돼 (모음 혼동)</button>
+        <button onclick="setExampleWord('왠지/웬일', 16)" class="bg-white hover:bg-emerald-50 border border-slate-300 px-2 py-1 rounded text-slate-700 font-medium">왠지/웬일</button>
+        <button onclick="setExampleWord('맞히다', 24)" class="bg-white hover:bg-emerald-50 border border-slate-300 px-2 py-1 rounded text-slate-700 font-medium">맞히다/맞추다 (의미 구별)</button>
+        <button onclick="setExampleWord('가르치다', 22)" class="bg-white hover:bg-emerald-50 border border-slate-300 px-2 py-1 rounded text-slate-700 font-medium">가르치다/가리키다</button>
+        <button onclick="setExampleWord('깍두기', 26)" class="bg-white hover:bg-emerald-50 border border-slate-300 px-2 py-1 rounded text-slate-700 font-medium">깍두기/등굣길 (사이시옷)</button>
+        <button onclick="setExampleWord('할 수 있다', 40)" class="bg-white hover:bg-emerald-50 border border-slate-300 px-2 py-1 rounded text-slate-700 font-medium">할 수 있다 (띄어쓰기)</button>
+        <button onclick="setExampleWord('종합', 25)" class="bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 px-2.5 py-1 rounded text-emerald-800 font-bold">✨ 전 영역 골고루 출제</button>
+      </div>
+
+      <!-- 세부 레이아웃 옵션 -->
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-3 pt-3 border-t border-slate-200 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">학습지 제목</label>
+          <input type="text" id="wsTitle" value="바른 말 고운 말 맞춤법 교실" class="w-full px-2 py-1 border rounded bg-white font-medium" oninput="renderHeader()">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">학년/반 설정</label>
+          <input type="text" id="wsGradeClass" value="4학년 2반" class="w-full px-2 py-1 border rounded bg-white font-medium" oninput="renderHeader()">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">문제 수</label>
+          <select id="problemCount" class="w-full px-2 py-1 border rounded bg-white font-medium" onchange="generateWorksheet()">
+            <option value="10">10 문제</option>
+            <option value="12">12 문제</option>
+            <option value="16" selected>16 문제 (2열 기본)</option>
+            <option value="20">20 문제</option>
+            <option value="24">24 문제 (3열 권장)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">열(단) 세팅</label>
+          <select id="columnSetting" class="w-full px-2 py-1 border rounded bg-white font-medium" onchange="updateLayout()">
+            <option value="1">1열 (긴 문장/풀이형)</option>
+            <option value="2" selected>2열 (표준 A4 배치)</option>
+            <option value="3">3열 (단답형 테스트)</option>
+          </select>
+        </div>
+        <div class="flex items-center pt-5">
+          <label class="inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="includeAnswers" checked class="form-checkbox h-4 w-4 text-emerald-600 rounded" onchange="toggleAnswerSheet()">
+            <span class="ml-2 font-bold text-slate-700">정답 및 해설지(뒷장) 포함</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 학습지 A4 미리보기 영역 ================= -->
+  <div class="py-8 px-2">
+    
+    <!-- [1] 문제지 용지 (A4) -->
+    <div id="worksheetPage" class="a4-preview print-page">
+      
+      <!-- 상단 헤더 영역 -->
+      <div class="border-b-2 border-slate-900 pb-3 mb-5">
+        <div class="flex justify-between items-end">
+          <div>
+            <span id="displayGradeClass" class="inline-block bg-slate-900 text-white text-xs font-bold px-2 py-0.5 rounded mr-2">4학년 2반</span>
+            <h2 id="displayTitle" class="text-2xl font-black tracking-tight text-slate-900 inline">바른 말 고운 말 맞춤법 교실</h2>
+          </div>
+          <div class="text-right text-xs text-slate-500 font-medium">
+            <span id="displayPatternName">유형: 소리와 표기</span>
+            <span id="displayHeaderDiff" class="ml-2 font-bold text-emerald-700">[난이도 Lv.15]</span>
+          </div>
+        </div>
+
+        <div class="flex justify-between items-center mt-3 pt-2 border-t border-dashed border-slate-300 text-sm">
+          <div class="font-medium text-slate-700">
+            날짜: 202&nbsp;&nbsp;년 &nbsp;&nbsp;&nbsp;&nbsp;월 &nbsp;&nbsp;&nbsp;&nbsp;일
+          </div>
+          <div class="flex gap-4">
+            <div class="font-medium text-slate-700">
+              <span class="font-bold">4학년 2반</span> &nbsp; 번호: [ &nbsp;&nbsp;&nbsp;&nbsp; ]
+            </div>
+            <div class="font-medium text-slate-700">
+              이름: [ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ]
+            </div>
+            <div class="font-bold text-slate-800 bg-slate-100 px-3 py-0.5 rounded border border-slate-300">
+              점수: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; / 100
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-2 text-xs font-semibold text-slate-600 bg-emerald-50/70 p-2 rounded border border-emerald-100">
+          💡 <strong>[안내]</strong> 문장을 읽고 괄호 안에서 문맥에 알맞은 올바른 맞춤법 낱말에 ○표를 하거나 [정답] 란에 바르게 적으세요.
+        </div>
+      </div>
+
+      <!-- 문제 출력 그리드 영역 -->
+      <div id="problemsGrid" class="grid grid-cols-2 gap-x-5 gap-y-4">
+        <!-- 동적으로 문제가 렌더링됩니다 -->
+      </div>
+
+      <!-- 용지 하단 문구 -->
+      <div class="absolute bottom-5 left-0 right-0 text-center text-xs text-slate-400">
+        4학년 2반 바른 국어 생활 • 바른 글씨로 또박또박 써 보아요!
+      </div>
+    </div>
+
+    <!-- [2] 정답 및 해설지 용지 (A4 뒷장 출력) -->
+    <div id="answerPage" class="a4-preview print-page page-break mt-8">
+      <div class="border-b-2 border-slate-900 pb-3 mb-5 flex justify-between items-end">
+        <div>
+          <span class="inline-block bg-emerald-700 text-white text-xs font-bold px-2 py-0.5 rounded mr-2">선생님 채점 / 스스로 확인</span>
+          <h2 class="text-2xl font-black tracking-tight text-slate-900 inline">[정답 및 해설] 4학년 2반 맞춤법 학습지</h2>
+        </div>
+        <div class="text-xs text-slate-500 font-medium">정답 및 바른 표기 도움말</div>
+      </div>
+
+      <div id="answersGrid" class="grid grid-cols-2 gap-3 text-xs">
+        <!-- 동적으로 정답 및 해설이 렌더링됩니다 -->
+      </div>
+
+      <div class="absolute bottom-5 left-0 right-0 text-center text-xs text-slate-400">
+        4학년 2반 맞춤법 학습지 정답 및 해설표
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ================= 맞춤법 데이터베이스 및 생성 엔진 ================= -->
+  <script>
+    // 초등 3~4학년 맞춤법 문제 은행 DB (난이도 1 ~ 50 세분화)
+    const SPELLING_DB = [
+      // 1. 소리와 표기 / 연음 / 받침 (예: 많은, 굳이, 같이 등)
+      { cat: 'sound', diff: 5, sentence: '도서관에는 읽을 책이 (많은 / 마는) 편이다.', choices: ['많은', '마는'], ans: '많은', tip: "'많다'의 어간 '많-'에 '-은'이 결합하여 소리는 [마는]이지만 '많은'으로 적습니다." },
+      { cat: 'sound', diff: 6, sentence: '친구와 (같이 / 가치) 학교에 갔다.', choices: ['같이', '가치'], ans: '같이', tip: "소리는 [가치]로 나지만 '같다'에서 온 말이므로 '같이'로 적습니다." },
+      { cat: 'sound', diff: 7, sentence: '화단에 꽃을 심기 위해 부드러운 (흙 / 흑)을 채웠다.', choices: ['흙', '흑'], ans: '흙', tip: "겹받침 'ㄺ'이 쓰인 낱말입니다." },
+      { cat: 'sound', diff: 7, sentence: '의자에 바른 자세로 (앉으세요 / 안으세요).', choices: ['앉으세요', '안으세요'], ans: '앉으세요', tip: "'자리에 앉다'는 겹받침 'ㄵ'을 씁니다." },
+      { cat: 'sound', diff: 8, sentence: '그런 말은 (굳이 / 구지) 할 필요가 없다.', choices: ['굳이', '구지'], ans: '굳이', tip: "구개음화 현상으로 소리는 [구지]로 나지만 '굳이'로 표기합니다." },
+      { cat: 'sound', diff: 8, sentence: '운동장이 매우 (넓어서 / 넙어서) 축구하기 좋다.', choices: ['넓어서', '넙어서'], ans: '넓어서', tip: "겹받침 'ㄼ'을 살려 적습니다." },
+      { cat: 'sound', diff: 9, sentence: '바람이 불어 교실 문이 덜컹 (닫혔다 / 다쳤다).', choices: ['닫혔다', '다쳤다'], ans: '닫혔다', tip: "문이 닫히는 것은 '닫히다', 몸을 상하는 것은 '다치다'입니다." },
+      { cat: 'sound', diff: 9, sentence: '시냇물이 거울처럼 아주 (맑다 / 말따).', choices: ['맑다', '말따'], ans: '맑다', tip: "겹받침 'ㄺ' 표기입니다." },
+      { cat: 'sound', diff: 10, sentence: '형은 우리 가족 삼 남매 중에서 (맏이 / 마디)이다.', choices: ['맏이', '마디'], ans: '맏이', tip: "첫째 자녀를 뜻하는 말은 '맏이'입니다." },
+      { cat: 'sound', diff: 10, sentence: '공책에 쓸 연필을 날카롭게 (깎았다 / 깍았다).', choices: ['깎았다', '깍았다'], ans: '깎았다', tip: "쌍기역(깎) 받침이 올바른 표기입니다." },
+      { cat: 'sound', diff: 11, sentence: '여름 운동복은 원단이 (얇아서 / 얄아서) 시원하다.', choices: ['얇아서', '얄아서'], ans: '얇아서', tip: "두께가 적은 것은 겹받침 '얇다'입니다." },
+      { cat: 'sound', diff: 12, sentence: '화원의 예쁜 꽃을 함부로 (꺾으면 / 꺽으면) 안 됩니다.', choices: ['꺾으면', '꺽으면'], ans: '꺾으면', tip: "'꺾다'는 쌍기역(꺾) 받침을 씁니다." },
+      { cat: 'sound', diff: 13, sentence: '간식으로 감자와 달걀을 냄비에 (삶았다 / 삼았다).', choices: ['삶았다', '삼았다'], ans: '삶았다', tip: "겹받침 'ㄻ'이 쓰인 '삶다'입니다." },
+      { cat: 'sound', diff: 15, sentence: '건강을 위해 아침밥을 (굶지 / 굼지) 맙시다.', choices: ['굶지', '굼지'], ans: '굶지', tip: "겹받침 'ㄻ'을 바르게 적습니다." },
+
+      // 2. 모음 및 발음 혼동 (되/돼, 안/않, 왠지/웬일, 어떻게/어떡해 등)
+      { cat: 'vowel', diff: 12, sentence: '오늘은 날씨가 생각보다 (안 / 않) 춥다.', choices: ['안', '않'], ans: '안', tip: "'아니'의 준말은 '안'이며, 단독 부사로 뒤의 말을 꾸밉니다." },
+      { cat: 'vowel', diff: 13, sentence: '점심시간에 따뜻한 된장(찌개 / 찌게)를 맛있게 먹었다.', choices: ['찌개', '찌게'], ans: '찌개', tip: "'찌개'는 모음 'ㅐ'가 올바른 표기입니다." },
+      { cat: 'vowel', diff: 14, sentence: '어제 숙제를 다 끝내지 (안았다 / 않았다).', choices: ['안았다', '않았다'], ans: '않았다', tip: "'아니하다'의 준말은 '않다/않았다'입니다." },
+      { cat: 'vowel', diff: 14, sentence: '드디어 준비물이 다 (됬다 / 됐다).', choices: ['됬다', '됐다'], ans: '됐다', tip: "'되었다'의 준말은 '됐다'이며, '됬'이라는 글자는 우리말에 없습니다." },
+      { cat: 'vowel', diff: 15, sentence: '나중에 훌륭한 과학자가 (되고 / 돼고) 싶다.', choices: ['되고', '돼고'], ans: '되고', tip: "'되어'로 바꿀 수 없는 자리에는 '되'를 씁니다." },
+      { cat: 'vowel', diff: 15, sentence: '잠을 잘 때 편안한 (베개 / 배개)를 베고 잔다.', choices: ['베개', '배개'], ans: '베개', tip: "머리를 베는 물건은 '베개'입니다." },
+      { cat: 'vowel', diff: 15, sentence: '선생님께 이 질문을 (어떻게 / 어떡해) 여쭤볼까?', choices: ['어떻게', '어떡해'], ans: '어떻게', tip: "방법이나 모양을 나타낼 때는 '어떻게'를 씁니다." },
+      { cat: 'vowel', diff: 16, sentence: '비가 오는 날이면 (왠지 / 웬지) 전이 먹고 싶어진다.', choices: ['왠지', '웬지'], ans: '왠지', tip: "'왜인지(왜 그런지 모르게)'의 준말일 때만 '왠지'로 적습니다." },
+      { cat: 'vowel', diff: 16, sentence: '골목길에서 단짝을 만나다니 이게 (웬일 / 왠일)이니?', choices: ['웬일', '왠일'], ans: '웬일', tip: "'어찌 된 일'의 뜻을 나타낼 때는 '웬일'입니다." },
+      { cat: 'vowel', diff: 17, sentence: '수업 준비물을 안 가져왔는데 이제 (어떻게 / 어떡해)?', choices: ['어떻게', '어떡해'], ans: '어떡해', tip: "'어떻게 해'의 줄임말은 문장 끝에서 '어떡해'로 씁니다." },
+      { cat: 'vowel', diff: 18, sentence: '손을 흐르는 물에 비누로 (깨끗이 / 깨끗히) 씻었다.', choices: ['깨끗이', '깨끗히'], ans: '깨끗이', tip: "'ㅅ' 받침으로 끝나는 말 뒤에는 부사 파생 접사 '-이'가 붙습니다." },
+      { cat: 'vowel', diff: 20, sentence: '문제를 풀기 전에 먼저 (곰곰이 / 곰곰히) 생각해 보았다.', choices: ['곰곰이', '곰곰히'], ans: '곰곰이', tip: "부사 뒤에 붙어 부사를 만드는 경우 '-이'로 적습니다." },
+      { cat: 'vowel', diff: 22, sentence: '선생님, 내일 방과 후에 교무실에서 (봬요 / 뵈요).', choices: ['봬요', '뵈요'], ans: '봬요', tip: "'뵈어요'의 줄임말이므로 '봬요'가 맞습니다." },
+
+      // 3. 의미 구별 낱말 (맞히다/맞추다, 가르치다/가리키다, 잃어/잊어 등)
+      { cat: 'distinction', diff: 20, sentence: '너의 생각과 나의 생각은 서로 (다르다 / 틀리다).', choices: ['다르다', '틀리다'], ans: '다르다', tip: "같지 않은 것은 '다르다', 옳지 않고 어긋난 것은 '틀리다'입니다." },
+      { cat: 'distinction', diff: 21, sentence: '선생님께서 우리에게 나눗셈을 친절히 (가르쳐 / 가리켜) 주셨다.', choices: ['가르쳐', '가리켜'], ans: '가르쳐', tip: "지식이나 방법을 알려주는 것은 '가르치다'입니다." },
+      { cat: 'distinction', diff: 22, sentence: '골목길 저편을 손가락으로 똑바로 (가리켰다 / 가르쳤다).', choices: ['가리켰다', '가르쳤다'], ans: '가리켰다', tip: "방향을 손가락 등으로 집는 것은 '가리키다'입니다." },
+      { cat: 'distinction', diff: 22, sentence: '골든벨 퀴즈에서 마지막 문제의 정답을 (맞혔다 / 맞췄다).', choices: ['맞혔다', '맞췄다'], ans: '맞혔다', tip: "문제의 답을 옳게 대는 것은 '맞히다'입니다." },
+      { cat: 'distinction', diff: 23, sentence: '공원에 놀러 갔다가 아끼던 필통을 (잃어버렸다 / 잊어버렸다).', choices: ['잃어버렸다', '잊어버렸다'], ans: '잃어버렸다', tip: "가지고 있던 물건을 분실한 것은 '잃어버리다'입니다." },
+      { cat: 'distinction', diff: 23, sentence: '열심히 외웠던 영어 단어를 깜빡 (잊어버렸다 / 잃어버렸다).', choices: ['잊어버렸다', '잃어버렸다'], ans: '잊어버렸다', tip: "기억을 떠올리지 못하는 것은 '잊어버리다'입니다." },
+      { cat: 'distinction', diff: 24, sentence: '시험이 끝난 후 짝꿍과 시험지를 서로 (맞추어 / 맞히어) 보았다.', choices: ['맞추어', '맞히어'], ans: '맞추어', tip: "두 개를 서로 대조하여 비교하는 것은 '맞추다'입니다." },
+      { cat: 'distinction', diff: 25, sentence: '식사 후 달콤한 사과 (껍질 / 껍데기)을 깎아서 먹었다.', choices: ['껍질', '껍데기'], ans: '껍질', tip: "사과나 귤처럼 부드러운 겉표면은 '껍질'입니다." },
+      { cat: 'distinction', diff: 26, sentence: '동해 바닷가 모래밭에서 단단한 조개(껍데기 / 껍질)를 주웠다.', choices: ['껍데기', '껍질'], ans: '껍데기', tip: "달걀이나 조개처럼 단단한 겉 물질은 '껍데기'입니다." },
+      { cat: 'distinction', diff: 28, sentence: '아침이 되자 자욱했던 안개가 서서히 (걷히고 / 거치고) 햇살이 났다.', choices: ['걷히고', '거치고'], ans: '걷히고', tip: "구름이나 안개가 흩어지는 것은 '걷히다'입니다." },
+      { cat: 'distinction', diff: 29, sentence: '소나기가 쏟아져서 알록달록한 우산을 (받쳐 / 바쳐) 들었다.', choices: ['받쳐', '바쳐'], ans: '받쳐', tip: "우산 등을 펴서 받드는 것은 '받치다'입니다." },
+      { cat: 'distinction', diff: 30, sentence: '나라를 지키기 위해 청춘을 (바친 / 받친) 영웅들을 기억하자.', choices: ['바친', '받친'], ans: '바친', tip: "정성이나 목숨을 아낌없이 드리는 것은 '바치다'입니다." },
+      { cat: 'distinction', diff: 32, sentence: '하얗게 부서지는 파도가 바위에 거세게 (부딪쳤다 / 부딪혔다).', choices: ['부딪쳤다', '부딪혔다'], ans: '부딪쳤다', tip: "물체가 힘차게 마주 닿는 능동적 행위는 '부딪치다'입니다." },
+      { cat: 'distinction', diff: 33, sentence: '골목을 뛰어가다 모퉁이에서 갑자기 자전거에 (부딪혔다 / 부딪쳤다).', choices: ['부딪혔다', '부딪쳤다'], ans: '부딪혔다', tip: "원치 않게 부딪힘을 당하는 피동의 상황은 '부딪히다'입니다." },
+
+      // 4. 사이시옷 및 된소리 표기 (깍두기, 등굣길, 나뭇가지 등)
+      { cat: 'compound', diff: 24, sentence: '급식 시간에 아삭아삭하고 매콤한 (깍두기 / 깎두기)가 나왔다.', choices: ['깍두기', '깎두기'], ans: '깍두기', tip: "'ㄱ' 받침 뒤에서 나는 된소리는 된소리 글자로 적지 않고 '깍두기'로 적습니다." },
+      { cat: 'compound', diff: 27, sentence: '따스한 봄날 (햇빛 / 해빛)이 교실 창가를 비추었다.', choices: ['햇빛', '해빛'], ans: '햇빛', tip: "순우리말 결합에서 뒷말의 첫소리가 된소리로 나므로 사이시옷을 받쳐 적습니다." },
+      { cat: 'compound', diff: 27, sentence: '방학 때 시원한 시골 (냇가 / 내가)에서 물장구를 쳤다.', choices: ['냇가', '내가'], ans: '냇가', tip: "순우리말 합성어로 사이시옷을 받쳐 적는 '냇가'입니다." },
+      { cat: 'compound', diff: 28, sentence: '참새 한 마리가 가느다란 (나뭇가지 / 나무가지)에 앉아 지저귄다.', choices: ['나뭇가지', '나무가지'], ans: '나뭇가지', tip: "'나무'와 '가지'가 결합하여 [나무까지]로 소리 나므로 사이시옷을 씁니다." },
+      { cat: 'compound', diff: 29, sentence: '기분이 아주 좋아서 나도 모르게 (콧노래 / 코노래)를 불렀다.', choices: ['콧노래', '코노래'], ans: '콧노래', tip: "'코'와 '노래'의 결합으로 'ㄴ' 소리가 덧나 사이시옷을 씁니다." },
+      { cat: 'compound', diff: 31, sentence: '숲속에서 뾰족한 부리로 나무를 쪼는 (딱따구리 / 딱다구리)를 만났다.', choices: ['딱따구리', '딱다구리'], ans: '딱따구리', tip: "같은 음절이나 비슷한 음절이 겹치는 경우 된소리 '딱따구리'로 적습니다." },
+      { cat: 'compound', diff: 34, sentence: '아침 (등굣길 / 등교길)에 횡단보도를 건널 때는 좌우를 살피자.', choices: ['등굣길', '등교길'], ans: '등굣길', tip: "한자어 '등교'와 순우리말 '길'이 결합하여 된소리가 나므로 사이시옷을 받칩니다." },
+      { cat: 'compound', diff: 34, sentence: '신나는 수업이 끝나고 (하굣길 / 하교길)에 문구점에 들렀다.', choices: ['하굣길', '하교길'], ans: '하굣길', tip: "순우리말 결합 합성어로 사이시옷을 씁니다." },
+
+      // 5. 띄어쓰기 및 초등 4학년 심화 어문 규범 (할 수 있다, 만큼, 로서/로써 등)
+      { cat: 'spacing', diff: 30, sentence: '선생님, 오늘이 5월 (며칠 / 몇일)인가요?', choices: ['며칠', '몇일'], ans: '며칠', tip: "'몇 일'이라는 표기는 없으며, 언제나 '며칠'로 통일하여 적습니다." },
+      { cat: 'spacing', diff: 35, sentence: '빈칸에 들어갈 가장 (알맞은 / 알맞는) 말을 보기에서 찾으시오.', choices: ['알맞은', '알맞는'], ans: '알맞은', tip: "형용사 '알맞다'에는 현재형 관형사형 어미 '-은'이 결합하여 '알맞은'이 됩니다." },
+      { cat: 'spacing', diff: 36, sentence: '수업이 끝나고 집에 (갈 때 / 갈때) 친구와 인사했다.', choices: ['갈 때', '갈때'], ans: '갈 때', tip: "'때'는 시간을 나타내는 자립 명사이므로 앞말과 띄어 씁니다." },
+      { cat: 'spacing', diff: 38, sentence: '포기하지 않고 끈기 있게 노력하면 무엇이든 (할 수 있다 / 할수있다).', choices: ['할 수 있다', '할수있다'], ans: '할 수 있다', tip: "'수'는 의존명사이므로 앞말(할)과 반드시 띄어 씁니다." },
+      { cat: 'spacing', diff: 40, sentence: '급식소에서는 먹을 수 있는 (만큼 / 만큼) 적당히 음식을 받자.', choices: ['먹을 만큼', '먹을만큼'], ans: '먹을 만큼', tip: "꾸며주는 말(먹을) 뒤에 오는 '만큼'은 의존명사이므로 띄어 씁니다." },
+      { cat: 'spacing', diff: 41, sentence: '새해를 맞이하여 가족 모두의 건강을 바라는 (바람 / 바램)을 적었다.', choices: ['바람', '바램'], ans: '바람', tip: "'바라다'의 명사형은 '바람'이며, '바램'은 색이 바래는 것을 뜻합니다." },
+      { cat: 'spacing', diff: 43, sentence: '우리 교실 책상 위에는 국어책(뿐 / 뿐)이었다.', choices: ['국어책뿐', '국어책 뿐'], ans: '국어책뿐', tip: "체언(명사) 바로 뒤에 붙는 '뿐'은 조사이므로 붙여 씁니다." },
+      { cat: 'spacing', diff: 44, sentence: '나도 (너만큼 / 너 만큼) 책 읽기를 좋아해.', choices: ['너만큼', '너 만큼'], ans: '너만큼', tip: "대명사(너) 뒤의 '만큼'은 조사이므로 앞말에 붙여 씁니다." },
+      { cat: 'spacing', diff: 45, sentence: '학급의 회장(으로서 / 으로써) 규칙을 철저히 지켜야 한다.', choices: ['으로서', '으로써'], ans: '으로서', tip: "신분이나 지위, 자격을 나타낼 때는 '으로서'를 씁니다." },
+      { cat: 'spacing', diff: 46, sentence: '말다툼 대신 따뜻한 대화(로써 / 로서) 오해를 풀었다.', choices: ['로써', '로서'], ans: '로써', tip: "수단이나 도구를 나타낼 때는 '로써'를 씁니다." }
+    ];
+
+    let currentProblems = [];
+
+    // 예시 입력 분석 함수
+    function detectCategory(inputStr) {
+      const text = inputStr.trim().toLowerCase();
+      if (!text || text === '종합' || text === '전체') {
+        return { cat: 'all', name: '전 영역 종합 맞춤법' };
+      }
+
+      // 소리와 표기 / 연음 감지 (많은, 굳이, 같이, 흙, 닭 등)
+      if (text.includes('많') || text.includes('마는') || text.includes('굳이') || text.includes('같이') || text.includes('소리') || text.includes('받침') || text.includes('흙') || text.includes('닭') || text.includes('넓')) {
+        return { cat: 'sound', name: '소리와 표기 (연음/받침)' };
+      }
+
+      // 모음 혼동 (되/돼, 안/않, 왠지/웬일, 어떻게/어떡해 등)
+      if (text.includes('되') || text.includes('돼') || text.includes('안') || text.includes('않') || text.includes('왠') || text.includes('웬') || text.includes('어떻') || text.includes('베개') || text.includes('깨끗')) {
+        return { cat: 'vowel', name: '모음 및 음운 혼동' };
+      }
+
+      // 의미 구별 (맞히다, 가르치다, 잃어버리다, 다르다 등)
+      if (text.includes('맞히') || text.includes('맞추') || text.includes('가르치') || text.includes('가리키') || text.includes('잃어') || text.includes('잊어') || text.includes('다르') || text.includes('틀리') || text.includes('부딪')) {
+        return { cat: 'distinction', name: '헷갈리는 낱말 뜻 구별' };
+      }
+
+      // 사이시옷 및 된소리 (깍두기, 등굣길, 햇빛 등)
+      if (text.includes('깍두기') || text.includes('사이시옷') || text.includes('등굣') || text.includes('나뭇') || text.includes('된소리')) {
+        return { cat: 'compound', name: '사이시옷 및 된소리 표기' };
+      }
+
+      // 띄어쓰기 및 심화
+      if (text.includes('띄어') || text.includes('수 있다') || text.includes('만큼') || text.includes('로서') || text.includes('바람') || text.includes('며칠')) {
+        return { cat: 'spacing', name: '띄어쓰기 및 심화 규범' };
+      }
+
+      return { cat: 'sound', name: '소리와 표기 (기본 감지)' };
+    }
+
+    // 난이도 설명 반환
+    function getDiffDescription(level) {
+      if (level <= 10) return '(기초 소리와 표기 / 초3 기초)';
+      if (level <= 20) return '(초3~초4 일상 혼동 어휘)';
+      if (level <= 35) return '(초4 표준 낱말 쓰임 및 구별)';
+      return '(초4 심화 띄어쓰기 및 어문 규범)';
+    }
+
+    // 추천 버튼 클릭
+    function setExampleWord(word, targetDiff) {
+      document.getElementById('exampleInput').value = word;
+      if (targetDiff) {
+        document.getElementById('difficultySlider').value = targetDiff;
+      }
+      handleDifficultyChange();
+      handleExampleChange();
+    }
+
+    function handleExampleChange() {
+      generateWorksheet();
+    }
+
+    function handleDifficultyChange() {
+      const level = parseInt(document.getElementById('difficultySlider').value, 10);
+      document.getElementById('diffValueDisplay').innerText = `Lv. ${level}`;
+      document.getElementById('diffDescDisplay').innerText = getDiffDescription(level);
+      document.getElementById('displayHeaderDiff').innerText = `[난이도 Lv.${level}]`;
+      generateWorksheet();
+    }
+
+    // 문제 추출 알고리즘 (선택한 카테고리 + 난이도 1~50에 가장 근접한 문제 선별)
+    function generateWorksheet() {
+      const inputStr = document.getElementById('exampleInput').value;
+      const detected = detectCategory(inputStr);
+      const targetDiff = parseInt(document.getElementById('difficultySlider').value, 10);
+      const count = parseInt(document.getElementById('problemCount').value, 10);
+
+      // UI 배지 업데이트
+      document.getElementById('detectedBadge').innerText = detected.name;
+      document.getElementById('displayPatternName').innerText = `유형: ${detected.name}`;
+
+      // 1. 후보 문제 필터링 (카테고리 일치 우선)
+      let candidates = [];
+      if (detected.cat === 'all') {
+        candidates = [...SPELLING_DB];
+      } else {
+        candidates = SPELLING_DB.filter(item => item.cat === detected.cat);
+        // 만약 해당 카테고리 문제가 부족하면 전체 DB에서 보충
+        if (candidates.length < count) {
+          const others = SPELLING_DB.filter(item => item.cat !== detected.cat);
+          candidates = candidates.concat(others);
+        }
+      }
+
+      // 2. 난이도 근접도(거리) 순으로 정렬 + 약간의 무작위성 가미
+      candidates.sort((a, b) => {
+        const distA = Math.abs(a.diff - targetDiff) + (Math.random() * 4 - 2);
+        const distB = Math.abs(b.diff - targetDiff) + (Math.random() * 4 - 2);
+        return distA - distB;
+      });
+
+      // 3. 문제 수만큼 선택 후 문제 번호 부여
+      const selected = candidates.slice(0, count);
+      // 순서를 다시 자연스럽게 섞기
+      selected.sort(() => Math.random() - 0.5);
+
+      currentProblems = selected.map((item, idx) => ({
+        num: idx + 1,
+        sentence: item.sentence,
+        choices: item.choices,
+        ans: item.ans,
+        tip: item.tip,
+        diff: item.diff
+      }));
+
+      renderProblems();
+      renderAnswers();
+      updateLayout();
+    }
+
+    // 문제 렌더링
+    function renderProblems() {
+      const grid = document.getElementById('problemsGrid');
+      grid.innerHTML = '';
+
+      currentProblems.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'problem-card';
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-start">
+              <span class="font-black text-emerald-700 mr-2 text-base">(${p.num})</span>
+              <p class="font-bold text-slate-800 text-[15px] leading-relaxed flex-1">
+                ${p.sentence}
+              </p>
+            </div>
+          </div>
+          <!-- 학생 정답 기재란 -->
+          <div class="mt-3 pt-1.5 border-t border-dashed border-slate-200 flex justify-between items-center text-xs">
+            <span class="text-slate-400 font-medium">난이도 Lv.${p.diff}</span>
+            <div class="flex items-center">
+              <span class="font-bold text-slate-700 mr-1.5">정답:</span>
+              <div class="w-24 border-b-2 border-slate-700 h-5"></div>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // 정답 및 해설 렌더링
+    function renderAnswers() {
+      const grid = document.getElementById('answersGrid');
+      grid.innerHTML = '';
+
+      currentProblems.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'border border-slate-200 p-2.5 rounded bg-slate-50 flex flex-col justify-between';
+        
+        item.innerHTML = `
+          <div class="flex items-center justify-between border-b border-slate-200 pb-1 mb-1.5">
+            <span class="font-bold text-emerald-800">문제 (${p.num})</span>
+            <span class="font-black text-slate-900 bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-xs">정답: ${p.ans}</span>
+          </div>
+          <p class="text-slate-600 text-[11px] leading-relaxed">
+            💡 ${p.tip}
+          </p>
+        `;
+        grid.appendChild(item);
+      });
+    }
+
+    // 열 세팅 반응
+    function updateLayout() {
+      const cols = document.getElementById('columnSetting').value;
+      const grid = document.getElementById('problemsGrid');
+      
+      grid.className = '';
+      if (cols === '1') {
+        grid.className = 'grid grid-cols-1 gap-y-5';
+      } else if (cols === '2') {
+        grid.className = 'grid grid-cols-2 gap-x-5 gap-y-4';
+      } else if (cols === '3') {
+        grid.className = 'grid grid-cols-3 gap-x-3 gap-y-3';
+      }
+    }
+
+    // 헤더 텍스트 반응
+    function renderHeader() {
+      const title = document.getElementById('wsTitle').value;
+      const gradeClass = document.getElementById('wsGradeClass').value;
+
+      document.getElementById('displayTitle').innerText = title;
+      document.getElementById('displayGradeClass').innerText = gradeClass;
+    }
+
+    // 정답지 토글
+    function toggleAnswerSheet() {
+      const isChecked = document.getElementById('includeAnswers').checked;
+      const answerPage = document.getElementById('answerPage');
+      if (isChecked) {
+        answerPage.classList.remove('hidden');
+      } else {
+        answerPage.classList.add('hidden');
+      }
+    }
+
+    // 초기 실행
+    window.onload = function() {
+      handleDifficultyChange();
+      renderHeader();
+    };
+  </script>
+</body>
+</html>
